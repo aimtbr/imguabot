@@ -1,8 +1,6 @@
 import { handleStartCommand } from './commands/start.js';
-import { handleHelpCommandEN } from './commands/en/help.js';
-import { handleHelpCommandUK } from './commands/uk/help.js';
-import { handleAboutCommandEN } from './commands/en/about.js';
-import { handleAboutCommandUK } from './commands/uk/about.js';
+import { handleHelpCommand } from './commands/en/help.js';
+import { handleAboutCommand } from './commands/en/about.js';
 import { getImagesDuckDuckGo } from './engines/duckduckgo.js';
 import { getImagesGoogle } from './engines/google.js';
 
@@ -56,7 +54,8 @@ async function searchImages(query) {
 // ============================================
 
 async function handleInlineQuery(inlineQuery) {
-  const { id, query } = inlineQuery;
+  const { id, query, from } = inlineQuery;
+  const isUkrainian = from?.language_code === 'uk';
 
   const queryPrepared = query && query.trim();
   // Empty query - show hint
@@ -65,7 +64,9 @@ async function handleInlineQuery(inlineQuery) {
       inline_query_id: id,
       results: [],
       cache_time: 0,
-      switch_pm_text: `🔍 Type ${MIN_QUERY_LENGTH}+ characters to search images...`,
+      switch_pm_text: isUkrainian
+        ? `🔍 Введіть ${MIN_QUERY_LENGTH}+ символів для пошуку...`
+        : `🔍 Type ${MIN_QUERY_LENGTH}+ characters to search images...`,
       switch_pm_parameter: 'help',
     });
   }
@@ -79,7 +80,9 @@ async function handleInlineQuery(inlineQuery) {
       inline_query_id: id,
       results: [],
       cache_time: 60,
-      switch_pm_text: '😕 No images found. Try different keywords.',
+      switch_pm_text: isUkrainian
+        ? '😕 Зображень не знайдено. Спробуйте інші слова.'
+        : '😕 No images found. Try different keywords.',
       switch_pm_parameter: 'help',
     });
   }
@@ -115,39 +118,29 @@ async function handleInlineQuery(inlineQuery) {
 async function handleMessage(message) {
   const chatId = message.chat.id;
   const text = message.text || '';
+  const isUkrainian = message.from?.language_code === 'uk';
 
   // /start command
   if (text.startsWith('/start')) {
-    return handleStartCommand(telegram, chatId);
+    return handleStartCommand(telegram, message);
   }
 
   // /help command
   if (text === '/help') {
-    return handleHelpCommandEN(telegram, chatId);
-  }
-
-  // /допомога command
-  if (text === '/допомога') {
-    return handleHelpCommandUK(telegram, chatId);
+    return handleHelpCommand(telegram, message);
   }
 
   // /about command
   if (text === '/about') {
-    return handleAboutCommandEN(telegram, chatId);
-  }
-
-  // /опис command
-  if (text === '/опис') {
-    return handleAboutCommandUK(telegram, chatId);
+    return handleAboutCommand(telegram, message);
   }
 
   // Unknown message - show hint
   await telegram('sendMessage', {
     chat_id: chatId,
-    text: `Use /help to learn how to search images!
-
-Використовуйте /допомога, щоб дізнатися, як шукати зображення!
-`,
+    text: isUkrainian
+      ? 'Використовуйте /help, щоб дізнатися, як шукати зображення!'
+      : 'Use /help to learn how to search images!',
   });
 }
 
@@ -210,6 +203,35 @@ Deno.serve(async (request) => {
       secret_token: WEBHOOK_SECRET,
       allowed_updates: ['message', 'inline_query'],
       drop_pending_updates: true,
+    });
+
+    // Set bot commands for English users
+    await telegram('setMyCommands', {
+      commands: [
+        { command: 'start', description: 'Start the bot' },
+        { command: 'help', description: 'How to use this bot' },
+        { command: 'about', description: 'About this bot' },
+      ],
+      language_code: 'en',
+    });
+
+    // Set bot commands for Ukrainian users
+    await telegram('setMyCommands', {
+      commands: [
+        { command: 'start', description: 'Запустити бота' },
+        { command: 'help', description: 'Як користуватися цим ботом' },
+        { command: 'about', description: 'Про цього бота' },
+      ],
+      language_code: 'uk',
+    });
+
+    // Set default commands (fallback)
+    await telegram('setMyCommands', {
+      commands: [
+        { command: 'start', description: 'Start the bot' },
+        { command: 'help', description: 'How to use this bot' },
+        { command: 'about', description: 'About this bot' },
+      ],
     });
 
     const info = await telegram('getWebhookInfo');
