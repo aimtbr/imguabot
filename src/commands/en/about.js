@@ -8,7 +8,7 @@ export const handleAboutCommand = async (telegram, message) => {
 🔒 Не збирає Ваші дані
 ⚡ Швидкі результати
 
-Зроблено з ❤️ в Україні`;
+Зроблено з ❤️ в Україні 🇺🇦`;
 
   const textEN = `*About this bot*
 
@@ -16,7 +16,7 @@ export const handleAboutCommand = async (telegram, message) => {
 🔒 No data collected
 ⚡ Fast results
 
-Made with ❤️ from Ukraine`;
+Made with ❤️ from Ukraine 🇺🇦`;
 
   await telegram('sendMessage', {
     chat_id: chatId,
