@@ -36,7 +36,7 @@ async function searchGoogle(query) {
   }
 }
 
-const getImagesGoogle = async (query) => {
+export const getImagesGoogle = async (query) => {
   const googleResults = await searchGoogle(query);
 
   if (googleResults.length > 0) {
@@ -53,8 +53,4 @@ const getImagesGoogle = async (query) => {
   }
 
   return { source: 'google', results: [] };
-};
-
-module.exports = {
-  getImagesGoogle,
 };

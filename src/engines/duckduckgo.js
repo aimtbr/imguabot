@@ -37,7 +37,7 @@ async function searchDuckDuckGo(query) {
   }
 }
 
-const getImagesDuckDuckGo = async (query) => {
+export const getImagesDuckDuckGo = async (query) => {
   const ddgResults = await searchDuckDuckGo(query);
 
   if (ddgResults.length > 0) {
@@ -54,8 +54,4 @@ const getImagesDuckDuckGo = async (query) => {
   }
 
   return { source: 'duckduckgo', results: [] };
-};
-
-module.exports = {
-  getImagesDuckDuckGo,
 };

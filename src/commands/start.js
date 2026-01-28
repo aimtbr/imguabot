@@ -1,7 +1,7 @@
 const BOT_USERNAME = Deno.env.get('BOT_USERNAME');
 const BOT_TITLE = Deno.env.get('BOT_TITLE');
 
-const handleStartCommand = async (telegram, chatId) => {
+export const handleStartCommand = async (telegram, chatId) => {
   // Get bot username for inline example
   const me = await telegram('getMe');
   const botUsername = me.result?.username || BOT_USERNAME;
@@ -30,5 +30,3 @@ Type \`@${botUsername} dove\` in any chat and select an image.
   });
   return;
 };
-
-module.exports = { handleStartCommand };

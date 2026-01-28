@@ -1,10 +1,10 @@
-const { handleStartCommand } = require('./commands/start.js');
-const { handleHelpCommandEN } = require('./commands/en/help.js');
-const { handleHelpCommandUK } = require('./commands/uk/help.js');
-const { handleAboutCommandEN } = require('./commands/en/about.js');
-const { handleAboutCommandUK } = require('./commands/uk/about.js');
-const { getImagesDuckDuckGo } = require('./engines/duckduckgo.js');
-const { getImagesGoogle } = require('./engines/google.js');
+import { handleStartCommand } from './commands/start.js';
+import { handleHelpCommandEN } from './commands/en/help.js';
+import { handleHelpCommandUK } from './commands/uk/help.js';
+import { handleAboutCommandEN } from './commands/en/about.js';
+import { handleAboutCommandUK } from './commands/uk/about.js';
+import { getImagesDuckDuckGo } from './engines/duckduckgo.js';
+import { getImagesGoogle } from './engines/google.js';
 
 const BOT_TOKEN = Deno.env.get('BOT_TOKEN');
 const WEBHOOK_SECRET = Deno.env.get('WEBHOOK_SECRET');

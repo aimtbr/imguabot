@@ -1,4 +1,4 @@
-const handleAboutCommandEN = async (telegram, chatId) => {
+export const handleAboutCommandEN = async (telegram, chatId) => {
   await telegram('sendMessage', {
     chat_id: chatId,
     text: `*About this bot*
@@ -11,8 +11,4 @@ Made with ❤️ from Ukraine`,
     parse_mode: 'Markdown',
   });
   return;
-};
-
-module.exports = {
-  handleAboutCommandEN,
 };

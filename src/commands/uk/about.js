@@ -1,4 +1,4 @@
-const handleAboutCommandUK = async (telegram, chatId) => {
+export const handleAboutCommandUK = async (telegram, chatId) => {
   await telegram('sendMessage', {
     chat_id: chatId,
     text: `*Про цього бота*
@@ -11,8 +11,4 @@ const handleAboutCommandUK = async (telegram, chatId) => {
     parse_mode: 'Markdown',
   });
   return;
-};
-
-module.exports = {
-  handleAboutCommandUK,
 };

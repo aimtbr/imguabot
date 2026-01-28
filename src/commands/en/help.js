@@ -1,7 +1,7 @@
 const BOT_USERNAME = Deno.env.get('BOT_USERNAME');
 const MY_USERNAME = Deno.env.get('MY_USERNAME');
 
-const handleHelpCommandEN = async (telegram, chatId) => {
+export const handleHelpCommandEN = async (telegram, chatId) => {
   const me = await telegram('getMe');
   const botUsername = me.result?.username || BOT_USERNAME;
 
@@ -25,8 +25,4 @@ Text @${MY_USERNAME} if something is not working or you have suggestions.
     parse_mode: 'Markdown',
   });
   return;
-};
-
-module.exports = {
-  handleHelpCommandEN,
 };
