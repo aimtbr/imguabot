@@ -12,7 +12,7 @@ const SEARCH_ENGINE = Deno.env.get('SEARCH_ENGINE') || 'duckduckgo';
 
 const BOT_TITLE = Deno.env.get('BOT_TITLE');
 
-const MAX_TITLE_LENGTH = Deno.env.get('MAX_TITLE_LENGTH') || 64;
+const MAX_IMAGE_TITLE_LENGTH = Deno.env.get('MAX_IMAGE_TITLE_LENGTH') || 64;
 const MAX_IMAGES = Deno.env.get('MAX_IMAGES') || 50;
 const MIN_QUERY_LENGTH = Deno.env.get('MIN_QUERY_LENGTH') || 3;
 
@@ -95,7 +95,7 @@ async function handleInlineQuery(inlineQuery) {
       thumbnail_url: item.thumbnail,
       photo_width: item.width,
       photo_height: item.height,
-      title: item.title.slice(0, MAX_TITLE_LENGTH),
+      title: item.title.slice(0, MAX_IMAGE_TITLE_LENGTH),
     }));
 
   await telegram('answerInlineQuery', {
