@@ -1,6 +1,6 @@
 import { handleStartCommand } from './commands/start.js';
-import { handleHelpCommand } from './commands/en/help.js';
-import { handleAboutCommand } from './commands/en/about.js';
+import { handleHelpCommand } from './commands/help.js';
+import { handleAboutCommand } from './commands/about.js';
 import { getImagesDuckDuckGo } from './engines/duckduckgo.js';
 import { getImagesGoogle } from './engines/google.js';
 
