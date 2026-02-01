@@ -2,19 +2,19 @@ const BOT_USERNAME = Deno.env.get('BOT_USERNAME');
 const BOT_TITLE = Deno.env.get('BOT_TITLE');
 
 export const handleStartCommand = async (telegram, message) => {
-  // Get bot username for inline example
   const me = await telegram('getMe');
   const botUsername = me.result?.username || BOT_USERNAME;
+  const botTitle = me.result?.first_name || BOT_TITLE;
 
   const chatId = message.chat.id;
   const isUkrainian = message.from?.language_code === 'uk';
 
-  const welcomeMessageUK = `🖼 *${BOT_TITLE}*
+  const welcomeMessageUK = `🖼 *${botTitle}*
 
-Шукайте зображення в будь-якому чаті!
+Шукайте зображення у будь-якому чаті!
 
 *Як використовувати:*
-Введіть \`@${botUsername} голуб\` у будь-якому чаті та оберіть зображення.
+Введіть, наприклад, \`@${botUsername} лебідь\` у будь-якому чаті та оберіть зображення.
 
 *Команди:*
 /start - Запустити бота
@@ -22,12 +22,12 @@ export const handleStartCommand = async (telegram, message) => {
 /about - Про цього бота
 `;
 
-  const welcomeMessageEN = `🖼 *${BOT_TITLE}*
+  const welcomeMessageEN = `🖼 *${botTitle}*
 
 Search images from any chat!
 
 *How to use:*
-Type \`@${botUsername} dove\` in any chat and select an image.
+Type, for example, \`@${botUsername} swan\` in any chat and select an image.
 
 *Commands:*
 /start - Start the bot

@@ -12,7 +12,7 @@ const BOT_TITLE = Deno.env.get('BOT_TITLE');
 
 const MAX_IMAGE_TITLE_LENGTH = Deno.env.get('MAX_IMAGE_TITLE_LENGTH') || 64;
 const MAX_IMAGES = Deno.env.get('MAX_IMAGES') || 50;
-const MIN_QUERY_LENGTH = Deno.env.get('MIN_QUERY_LENGTH') || 3;
+const MIN_QUERY_LENGTH = Deno.env.get('MIN_QUERY_LENGTH') || 2;
 
 const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}`;
 
@@ -30,7 +30,7 @@ async function telegram(method, body = {}) {
 }
 
 // ============================================
-// Main Search Function (tries DuckDuckGo first)
+// Main Search Function
 // ============================================
 
 async function searchImages(query) {

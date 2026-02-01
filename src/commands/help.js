@@ -11,7 +11,7 @@ export const handleHelpCommand = async (telegram, message) => {
   const textUK = `*Як шукати зображення:*
 
 1. Перейдіть до будь-якого чату (група, канал або особисті повідомлення)
-2. Введіть: \`@${botUsername} ваш запит\`
+2. Введіть: \`@${botUsername} лебідь\`
 3. Зачекайте, поки з'являться результати
 4. Торкніться зображення, щоб надіслати його
 
@@ -25,7 +25,7 @@ export const handleHelpCommand = async (telegram, message) => {
   const textEN = `*How to search images:*
 
 1. Go to any chat (group, channel, or DM)
-2. Type: \`@${botUsername} your search\`
+2. Type: \`@${botUsername} swan\`
 3. Wait for results to appear
 4. Tap an image to send it
 

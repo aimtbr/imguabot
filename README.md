@@ -5,8 +5,8 @@
 
 #### How to use
 
-Search images effortlessly by typing `@imguabot dove` in any Telegram chat.
+Search images effortlessly by typing `@imguabot swan` in any Telegram chat.
 
 #### Як використовувати
 
-Шукайте зображення без зусиль, написавши `@imguabot dove` в будь-якому Telegram чаті.
+Шукайте зображення без зусиль, написавши `@imguabot лебідь` у будь-якому Telegram чаті.
