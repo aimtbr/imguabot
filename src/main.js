@@ -36,14 +36,14 @@ async function telegram(method, body = {}) {
 // Main Search Function
 // ============================================
 
-async function searchImages(query) {
+async function searchImages(query, pageOffset = 0) {
   try {
     if (SEARCH_ENGINE === 'google') {
       return getImagesGoogle(query);
     }
 
     if (SEARCH_ENGINE === 'duckduckgo') {
-      return getImagesDuckDuckGo(query);
+      return getImagesDuckDuckGo(query, pageOffset);
     }
   } catch (error) {
     console.error('Search error:', error);
@@ -80,7 +80,10 @@ async function handleInlineQuery(inlineQuery) {
   }
 
   // Search images
-  const { source, results: images } = await searchImages(queryPrepared);
+  const { source, results: images } = await searchImages(
+    queryPrepared,
+    pageOffset,
+  );
 
   const noImagesFound = images.length === 0;
   if (noImagesFound) {
@@ -95,13 +98,13 @@ async function handleInlineQuery(inlineQuery) {
     });
   }
 
-  // Get all inline results
-  const allResults = images
+  // Build current page inline results
+  const pageResults = images
     .filter((item) => item && item.image && item.thumbnail)
-    .slice(0, MAX_IMAGES)
+    .slice(0, MAX_IMAGES_PER_PAGE)
     .map((item, index) => ({
       type: 'photo',
-      id: `${Date.now()}-${index}`,
+      id: `${pageOffset + index}`,
       photo_url: item.image,
       thumbnail_url: item.thumbnail,
       photo_width: item.width,
@@ -109,15 +112,11 @@ async function handleInlineQuery(inlineQuery) {
       title: (item.title || '').slice(0, MAX_IMAGE_TITLE_LENGTH),
     }));
 
-  // Paginate results
-  const pageResults = allResults.slice(
-    pageOffset,
-    pageOffset + MAX_IMAGES_PER_PAGE,
-  );
-
   // Prepare the next offset for further requests
   const loadedResultsLength = pageOffset + pageResults.length;
-  const hasMore = loadedResultsLength < allResults.length;
+  const hasReachedLimit = loadedResultsLength >= MAX_IMAGES;
+  const hasMore =
+    pageResults.length === MAX_IMAGES_PER_PAGE && !hasReachedLimit;
   const nextOffset = hasMore ? String(loadedResultsLength) : '';
 
   await telegram('answerInlineQuery', {
@@ -129,7 +128,7 @@ async function handleInlineQuery(inlineQuery) {
   });
 
   console.log(
-    `Search: "${query}" → ${loadedResultsLength}/${allResults.length} results (${source})`,
+    `Search: "${query}" → ${loadedResultsLength}/${MAX_IMAGES} results loaded (${source})`,
   );
 }
 

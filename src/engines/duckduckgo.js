@@ -1,4 +1,4 @@
-async function searchDuckDuckGo(query) {
+async function searchDuckDuckGo(query, pageOffset = 0) {
   try {
     // Step 1: Get the vqd token from DuckDuckGo
     const tokenRes = await fetch(
@@ -18,8 +18,9 @@ async function searchDuckDuckGo(query) {
       return [];
     }
 
-    // Step 2: Fetch images using the token
-    const imageUrl = `https://duckduckgo.com/i.js?q=${encodeURIComponent(query)}&vqd=${vqd}&p=1&s=0&o=json`;
+    // Step 2: Fetch a single page using the requested offset
+    const imageUrl = `https://duckduckgo.com/i.js?q=${encodeURIComponent(query)}&vqd=${vqd}&p=1&s=${pageOffset}&o=json`;
+
     const imageRes = await fetch(imageUrl, {
       headers: {
         'User-Agent':
@@ -37,8 +38,8 @@ async function searchDuckDuckGo(query) {
   }
 }
 
-export const getImagesDuckDuckGo = async (query) => {
-  const ddgResults = await searchDuckDuckGo(query);
+export const getImagesDuckDuckGo = async (query, pageOffset = 0) => {
+  const ddgResults = await searchDuckDuckGo(query, pageOffset);
 
   if (ddgResults.length > 0) {
     return {
