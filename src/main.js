@@ -10,9 +10,12 @@ const SEARCH_ENGINE = Deno.env.get('SEARCH_ENGINE') || 'duckduckgo';
 
 const BOT_TITLE = Deno.env.get('BOT_TITLE');
 
-const MAX_IMAGE_TITLE_LENGTH = Deno.env.get('MAX_IMAGE_TITLE_LENGTH') || 64;
-const MAX_IMAGES = Deno.env.get('MAX_IMAGES') || 50;
-const MIN_QUERY_LENGTH = Deno.env.get('MIN_QUERY_LENGTH') || 2;
+const MAX_IMAGE_TITLE_LENGTH = Number(
+  Deno.env.get('MAX_IMAGE_TITLE_LENGTH') || 64,
+);
+const MAX_IMAGES = Number(Deno.env.get('MAX_IMAGES') || 500);
+const MAX_IMAGES_PER_PAGE = Number(Deno.env.get('MAX_IMAGES_PER_PAGE') || 50);
+const MIN_QUERY_LENGTH = Number(Deno.env.get('MIN_QUERY_LENGTH') || 2);
 
 const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}`;
 
@@ -54,8 +57,13 @@ async function searchImages(query) {
 // ============================================
 
 async function handleInlineQuery(inlineQuery) {
-  const { id, query, from } = inlineQuery;
+  const { id, query, from, offset = '' } = inlineQuery;
+
   const isUkrainian = from?.language_code === 'uk';
+
+  const requestedOffset = Number.parseInt(offset, 10);
+  const pageOffset =
+    Number.isNaN(requestedOffset) || requestedOffset < 0 ? 0 : requestedOffset;
 
   const queryPrepared = query && query.trim();
   // Empty query - show hint
@@ -87,8 +95,8 @@ async function handleInlineQuery(inlineQuery) {
     });
   }
 
-  // Build inline results
-  const results = images
+  // Get all inline results
+  const allResults = images
     .filter((item) => item && item.image && item.thumbnail)
     .slice(0, MAX_IMAGES)
     .map((item, index) => ({
@@ -98,17 +106,31 @@ async function handleInlineQuery(inlineQuery) {
       thumbnail_url: item.thumbnail,
       photo_width: item.width,
       photo_height: item.height,
-      title: item.title.slice(0, MAX_IMAGE_TITLE_LENGTH),
+      title: (item.title || '').slice(0, MAX_IMAGE_TITLE_LENGTH),
     }));
+
+  // Paginate results
+  const pageResults = allResults.slice(
+    pageOffset,
+    pageOffset + MAX_IMAGES_PER_PAGE,
+  );
+
+  // Prepare the next offset for further requests
+  const loadedResultsLength = pageOffset + pageResults.length;
+  const hasMore = loadedResultsLength < allResults.length;
+  const nextOffset = hasMore ? String(loadedResultsLength) : '';
 
   await telegram('answerInlineQuery', {
     inline_query_id: id,
-    results,
+    results: pageResults,
     cache_time: 300, // Cache for 5 minutes
     is_personal: false,
+    next_offset: nextOffset,
   });
 
-  console.log(`Search: "${query}" → ${results.length} results (${source})`);
+  console.log(
+    `Search: "${query}" → ${loadedResultsLength}/${allResults.length} results (${source})`,
+  );
 }
 
 // ============================================
