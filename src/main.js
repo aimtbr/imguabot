@@ -127,8 +127,13 @@ async function handleInlineQuery(inlineQuery) {
     next_offset: nextOffset,
   });
 
+  // Logging
+  const userName =
+    [from?.first_name, from?.last_name].filter(Boolean).join(' ') || 'Unknown';
+  const userHandle = from?.username ? `@${from.username}` : 'no username';
+
   console.log(
-    `Search: "${query}" → ${loadedResultsLength}/${MAX_IMAGES} results loaded (${source})`,
+    `Search: "${query}" by ${userName} (${userHandle}) → ${loadedResultsLength}/${MAX_IMAGES} results loaded (${source})`,
   );
 }
 
