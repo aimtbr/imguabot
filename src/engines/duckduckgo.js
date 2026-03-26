@@ -19,7 +19,7 @@ async function searchDuckDuckGo(query, pageOffset = 0) {
     }
 
     // Step 2: Fetch a single page using the requested offset
-    const imageUrl = `https://duckduckgo.com/i.js?q=${encodeURIComponent(query)}&vqd=${vqd}&p=1&s=${pageOffset}&o=json`;
+    const imageUrl = `https://duckduckgo.com/i.js?q=${encodeURIComponent(query)}&vqd=${vqd}&p=-1&s=${pageOffset}&o=json`;
 
     const imageRes = await fetch(imageUrl, {
       headers: {
