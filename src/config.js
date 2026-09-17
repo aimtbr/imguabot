@@ -58,6 +58,20 @@ export const SEARCH_CACHE_MAX_ENTRIES = number('SEARCH_CACHE_MAX_ENTRIES', 500);
 export const SEARCH_RETRY_ATTEMPTS = number('SEARCH_RETRY_ATTEMPTS', 2);
 export const SEARCH_RETRY_DELAY_MS = number('SEARCH_RETRY_DELAY_MS', 500);
 
+// When an engine refuses this many searches in a row it is treated as
+// systematically blocked rather than sporadically failing, and requests stop
+// until the cooldown expires. The cooldown doubles with every further refusal,
+// so a blocked deployment backs off instead of hammering.
+export const SEARCH_BREAKER_THRESHOLD = number('SEARCH_BREAKER_THRESHOLD', 3);
+export const SEARCH_BREAKER_COOLDOWN_MS = number(
+  'SEARCH_BREAKER_COOLDOWN_MS',
+  60_000,
+);
+export const SEARCH_BREAKER_MAX_COOLDOWN_MS = number(
+  'SEARCH_BREAKER_MAX_COOLDOWN_MS',
+  600_000,
+);
+
 // Telegram caches inline answers itself, in seconds. Deriving those from the
 // TTLs above keeps the two layers from drifting apart: Telegram holds an
 // answer for as long as we consider it good.

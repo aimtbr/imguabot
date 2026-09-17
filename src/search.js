@@ -6,10 +6,16 @@ import {
   SEARCH_EMPTY_CACHE_TTL_MS as EMPTY_CACHE_TTL_MS,
   SEARCH_FAILURE_CACHE_TTL_MS as FAILURE_CACHE_TTL_MS,
   SEARCH_CACHE_MAX_ENTRIES as CACHE_MAX_ENTRIES,
+  SEARCH_BREAKER_THRESHOLD as BREAKER_THRESHOLD,
+  SEARCH_BREAKER_COOLDOWN_MS as BREAKER_COOLDOWN_MS,
+  SEARCH_BREAKER_MAX_COOLDOWN_MS as BREAKER_MAX_COOLDOWN_MS,
 } from './config.js';
 
 const cache = new Map();
 const inFlight = new Map();
+
+let consecutiveFailures = 0;
+let pausedUntil = 0;
 
 // ============================================
 // Result Cache
@@ -59,6 +65,48 @@ function writeCache(key, value) {
 }
 
 // ============================================
+// Circuit Breaker
+// ============================================
+
+// Retrying helps when an engine refuses sporadically. When it refuses every
+// time, retrying just adds load to an address that is already being blocked,
+// so past a threshold requests stop until the engine has had time to relent.
+function isPaused() {
+  return Date.now() < pausedUntil;
+}
+
+function recordOutcome(failed) {
+  if (!failed) {
+    if (consecutiveFailures > 0) {
+      console.log(
+        `Search engine answered again after ${consecutiveFailures} refusals`,
+      );
+    }
+
+    consecutiveFailures = 0;
+    pausedUntil = 0;
+
+    return;
+  }
+
+  consecutiveFailures++;
+
+  if (consecutiveFailures < BREAKER_THRESHOLD) return;
+
+  // Every refusal past the threshold doubles the wait, up to the ceiling
+  const cooldown = Math.min(
+    BREAKER_COOLDOWN_MS * 2 ** (consecutiveFailures - BREAKER_THRESHOLD),
+    BREAKER_MAX_COOLDOWN_MS,
+  );
+
+  pausedUntil = Date.now() + cooldown;
+
+  console.warn(
+    `Search engine refused ${consecutiveFailures} times in a row, pausing requests for ${Math.round(cooldown / 1000)}s`,
+  );
+}
+
+// ============================================
 // Main Search Function
 // ============================================
 
@@ -83,6 +131,15 @@ async function fetchImages(query, pageOffset) {
 export async function searchImages(query, pageOffset = 0) {
   const key = cacheKey(query, pageOffset);
 
+  if (isPaused()) {
+    // A cached answer is still worth serving while requests are paused
+    const paused = readCache(key);
+
+    return paused
+      ? { ...paused, cached: true }
+      : { source: SEARCH_ENGINE, results: [], failed: true, cached: false };
+  }
+
   const cached = readCache(key);
   if (cached) {
     return { ...cached, cached: true };
@@ -97,6 +154,7 @@ export async function searchImages(query, pageOffset = 0) {
 
   const request = fetchImages(query, pageOffset)
     .then((value) => {
+      recordOutcome(value.failed);
       writeCache(key, value);
 
       return value;
