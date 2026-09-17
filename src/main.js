@@ -1,12 +1,10 @@
 import { handleStartCommand } from './commands/start.js';
 import { handleHelpCommand } from './commands/help.js';
 import { handleAboutCommand } from './commands/about.js';
-import { getImagesDuckDuckGo } from './engines/duckduckgo.js';
-import { getImagesGoogle } from './engines/google.js';
+import { searchImages } from './search.js';
 
 const BOT_TOKEN = Deno.env.get('BOT_TOKEN');
 const WEBHOOK_SECRET = Deno.env.get('WEBHOOK_SECRET');
-const SEARCH_ENGINE = Deno.env.get('SEARCH_ENGINE') || 'duckduckgo';
 
 const BOT_TITLE = Deno.env.get('BOT_TITLE');
 
@@ -16,6 +14,9 @@ const MAX_IMAGE_TITLE_LENGTH = Number(
 const MAX_IMAGES = Number(Deno.env.get('MAX_IMAGES') || 500);
 const MAX_IMAGES_PER_PAGE = Number(Deno.env.get('MAX_IMAGES_PER_PAGE') || 50);
 const MIN_QUERY_LENGTH = Number(Deno.env.get('MIN_QUERY_LENGTH') || 2);
+const INLINE_QUERY_DEBOUNCE_MS = Number(
+  Deno.env.get('INLINE_QUERY_DEBOUNCE_MS') || 300,
+);
 
 const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}`;
 
@@ -30,26 +31,6 @@ async function telegram(method, body = {}) {
     body: JSON.stringify(body),
   });
   return response.json();
-}
-
-// ============================================
-// Main Search Function
-// ============================================
-
-async function searchImages(query, pageOffset = 0) {
-  try {
-    if (SEARCH_ENGINE === 'google') {
-      return getImagesGoogle(query);
-    }
-
-    if (SEARCH_ENGINE === 'duckduckgo') {
-      return getImagesDuckDuckGo(query, pageOffset);
-    }
-  } catch (error) {
-    console.error('Search error:', error);
-
-    return { source: 'none', results: [] };
-  }
 }
 
 // ============================================
@@ -80,7 +61,7 @@ async function handleInlineQuery(inlineQuery) {
   }
 
   // Search images
-  const { source, results: images } = await searchImages(
+  const { source, results: images, cached } = await searchImages(
     queryPrepared,
     pageOffset,
   );
@@ -133,8 +114,35 @@ async function handleInlineQuery(inlineQuery) {
   const userHandle = from?.username ? `@${from.username}` : 'no username';
 
   console.log(
-    `Search: "${query}" by ${userName} (${userHandle}) → ${loadedResultsLength}/${MAX_IMAGES} results loaded (${source})`,
+    `Search: "${query}" by ${userName} (${userHandle}) → ${loadedResultsLength}/${MAX_IMAGES} results loaded (${source}${cached ? ', cached' : ''})`,
   );
+}
+
+// ============================================
+// Inline Query Debounce
+// ============================================
+
+// Telegram sends an inline query on every keystroke. Answering each one
+// floods the search engine, so a query is held briefly and dropped when the
+// same user types again - only the latest one is answered.
+const pendingQueries = new Map();
+
+function scheduleInlineQuery(inlineQuery) {
+  const debounceKey = inlineQuery.from?.id ?? inlineQuery.id;
+
+  clearTimeout(pendingQueries.get(debounceKey));
+
+  const timer = setTimeout(async () => {
+    pendingQueries.delete(debounceKey);
+
+    try {
+      await handleInlineQuery(inlineQuery);
+    } catch (error) {
+      console.error('Error handling inline query:', error);
+    }
+  }, INLINE_QUERY_DEBOUNCE_MS);
+
+  pendingQueries.set(debounceKey, timer);
 }
 
 // ============================================
@@ -177,7 +185,7 @@ async function handleMessage(message) {
 async function handleUpdate(update) {
   try {
     if (update.inline_query) {
-      await handleInlineQuery(update.inline_query);
+      scheduleInlineQuery(update.inline_query);
     } else if (update.message) {
       await handleMessage(update.message);
     }
