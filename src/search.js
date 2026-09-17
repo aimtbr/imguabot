@@ -1,18 +1,12 @@
 import { getImagesDuckDuckGo } from './engines/duckduckgo.js';
 import { getImagesGoogle } from './engines/google.js';
-
-const SEARCH_ENGINE = Deno.env.get('SEARCH_ENGINE') || 'duckduckgo';
-
-// Successful results are cached as long as Telegram caches the answer itself.
-const CACHE_TTL_MS = Number(Deno.env.get('SEARCH_CACHE_TTL_MS') || 300_000);
-// Empty results are cached too, so a blocked or rate-limited engine is not
-// hammered once per query while it is refusing to answer.
-const EMPTY_CACHE_TTL_MS = Number(
-  Deno.env.get('SEARCH_EMPTY_CACHE_TTL_MS') || 60_000,
-);
-const CACHE_MAX_ENTRIES = Number(
-  Deno.env.get('SEARCH_CACHE_MAX_ENTRIES') || 500,
-);
+import {
+  SEARCH_ENGINE,
+  SEARCH_CACHE_TTL_MS as CACHE_TTL_MS,
+  SEARCH_EMPTY_CACHE_TTL_MS as EMPTY_CACHE_TTL_MS,
+  SEARCH_FAILURE_CACHE_TTL_MS as FAILURE_CACHE_TTL_MS,
+  SEARCH_CACHE_MAX_ENTRIES as CACHE_MAX_ENTRIES,
+} from './config.js';
 
 const cache = new Map();
 const inFlight = new Map();
@@ -55,8 +49,11 @@ function writeCache(key, value) {
     cache.delete(oldestKey);
   }
 
-  const isEmpty = value.results.length === 0;
-  const ttl = isEmpty ? EMPTY_CACHE_TTL_MS : CACHE_TTL_MS;
+  // A failure is held only as a stampede guard; a genuine "no results" is a
+  // stable answer and keeps the longer empty TTL
+  let ttl = CACHE_TTL_MS;
+  if (value.failed) ttl = FAILURE_CACHE_TTL_MS;
+  else if (value.results.length === 0) ttl = EMPTY_CACHE_TTL_MS;
 
   cache.set(key, { value, expiresAt: now + ttl });
 }

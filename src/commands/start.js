@@ -1,5 +1,4 @@
-const BOT_USERNAME = Deno.env.get('BOT_USERNAME');
-const BOT_TITLE = Deno.env.get('BOT_TITLE');
+import { BOT_USERNAME, BOT_TITLE } from '../config.js';
 
 export const handleStartCommand = async (telegram, message) => {
   const me = await telegram('getMe');

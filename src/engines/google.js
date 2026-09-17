@@ -1,6 +1,4 @@
-const GOOGLE_API_KEY = Deno.env.get('GOOGLE_API_KEY') || '<error>';
-const GOOGLE_SEARCH_ENGINE_ID =
-  Deno.env.get('GOOGLE_SEARCH_ENGINE_ID') || '<error>';
+import { GOOGLE_API_KEY, GOOGLE_SEARCH_ENGINE_ID } from '../config.js';
 
 // ============================================
 // Image Search: Google Custom Search (Paid)
@@ -8,9 +6,10 @@ const GOOGLE_SEARCH_ENGINE_ID =
 // ============================================
 
 async function searchGoogle(query) {
+  // Not configured is a settled answer, not a transient failure
   if (!GOOGLE_API_KEY || !GOOGLE_SEARCH_ENGINE_ID) {
     console.log('Google API not configured, skipping');
-    return [];
+    return { results: [], failed: false };
   }
 
   try {
@@ -26,31 +25,28 @@ async function searchGoogle(query) {
 
     if (data.error) {
       console.error('Google API error:', data.error.message);
-      return [];
+      return { results: [], failed: true };
     }
 
-    return data.items || [];
+    return { results: data.items || [], failed: false };
   } catch (error) {
     console.error('Google search error:', error);
-    return [];
+    return { results: [], failed: true };
   }
 }
 
 export const getImagesGoogle = async (query) => {
-  const googleResults = await searchGoogle(query);
+  const { results, failed } = await searchGoogle(query);
 
-  if (googleResults.length > 0) {
-    return {
-      source: 'google',
-      results: googleResults.map((item) => ({
-        image: item.link,
-        thumbnail: item.image?.thumbnailLink || item.link,
-        width: item.image?.width || 400,
-        height: item.image?.height || 300,
-        title: item.title || 'Image',
-      })),
-    };
-  }
-
-  return { source: 'google', results: [] };
+  return {
+    source: 'google',
+    failed,
+    results: results.map((item) => ({
+      image: item.link,
+      thumbnail: item.image?.thumbnailLink || item.link,
+      width: item.image?.width || 400,
+      height: item.image?.height || 300,
+      title: item.title || 'Image',
+    })),
+  };
 };

@@ -2,21 +2,19 @@ import { handleStartCommand } from './commands/start.js';
 import { handleHelpCommand } from './commands/help.js';
 import { handleAboutCommand } from './commands/about.js';
 import { searchImages } from './search.js';
-
-const BOT_TOKEN = Deno.env.get('BOT_TOKEN');
-const WEBHOOK_SECRET = Deno.env.get('WEBHOOK_SECRET');
-
-const BOT_TITLE = Deno.env.get('BOT_TITLE');
-
-const MAX_IMAGE_TITLE_LENGTH = Number(
-  Deno.env.get('MAX_IMAGE_TITLE_LENGTH') || 64,
-);
-const MAX_IMAGES = Number(Deno.env.get('MAX_IMAGES') || 500);
-const MAX_IMAGES_PER_PAGE = Number(Deno.env.get('MAX_IMAGES_PER_PAGE') || 50);
-const MIN_QUERY_LENGTH = Number(Deno.env.get('MIN_QUERY_LENGTH') || 2);
-const INLINE_QUERY_DEBOUNCE_MS = Number(
-  Deno.env.get('INLINE_QUERY_DEBOUNCE_MS') || 300,
-);
+import {
+  BOT_TOKEN,
+  BOT_TITLE,
+  WEBHOOK_SECRET,
+  MAX_IMAGE_TITLE_LENGTH,
+  MAX_IMAGES,
+  MAX_IMAGES_PER_PAGE,
+  MIN_QUERY_LENGTH,
+  INLINE_QUERY_DEBOUNCE_MS,
+  SEARCH_CACHE_TTL_SECONDS,
+  SEARCH_EMPTY_CACHE_TTL_SECONDS,
+  SEARCH_FAILURE_CACHE_TTL_SECONDS,
+} from './config.js';
 
 const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}`;
 
@@ -61,20 +59,28 @@ async function handleInlineQuery(inlineQuery) {
   }
 
   // Search images
-  const { source, results: images, cached } = await searchImages(
+  const { source, results: images, cached, failed } = await searchImages(
     queryPrepared,
     pageOffset,
   );
 
   const noImagesFound = images.length === 0;
   if (noImagesFound) {
+    // A refused search must not be cached like a settled "no results", or one
+    // bad answer is served to everyone searching that term for a minute
     return telegram('answerInlineQuery', {
       inline_query_id: id,
       results: [],
-      cache_time: 60,
-      switch_pm_text: isUkrainian
-        ? '😕 Зображень не знайдено. Спробуйте інші слова.'
-        : '😕 No images found. Try different keywords.',
+      cache_time: failed
+        ? SEARCH_FAILURE_CACHE_TTL_SECONDS
+        : SEARCH_EMPTY_CACHE_TTL_SECONDS,
+      switch_pm_text: failed
+        ? isUkrainian
+          ? '⚠️ Пошук не вдався. Спробуйте ще раз.'
+          : '⚠️ Search failed. Please try again.'
+        : isUkrainian
+          ? '😕 Зображень не знайдено. Спробуйте інші слова.'
+          : '😕 No images found. Try different keywords.',
       switch_pm_parameter: 'help',
     });
   }
@@ -103,7 +109,7 @@ async function handleInlineQuery(inlineQuery) {
   await telegram('answerInlineQuery', {
     inline_query_id: id,
     results: pageResults,
-    cache_time: 300, // Cache for 5 minutes
+    cache_time: SEARCH_CACHE_TTL_SECONDS,
     is_personal: false,
     next_offset: nextOffset,
   });
@@ -114,7 +120,7 @@ async function handleInlineQuery(inlineQuery) {
   const userHandle = from?.username ? `@${from.username}` : 'no username';
 
   console.log(
-    `Search: "${query}" by ${userName} (${userHandle}) → ${loadedResultsLength}/${MAX_IMAGES} results loaded (${source}${cached ? ', cached' : ''})`,
+    `Search: "${query}" by ${userName} (${userHandle}) → ${loadedResultsLength}/${MAX_IMAGES} results loaded (${source}${cached ? ', cached' : ''}${failed ? ', failed' : ''})`,
   );
 }
 
