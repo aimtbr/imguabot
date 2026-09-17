@@ -1,3 +1,26 @@
+const USER_AGENT =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+
+function extractVqd(html) {
+  const patterns = [
+    /vqd=["']([\d-]+)["']/,
+    /"vqd":\s*["']([\d-]+)["']/,
+    /vqd=([\d-]+)&/,
+  ];
+
+  for (const pattern of patterns) {
+    const match = html.match(pattern);
+    if (match) return match[1];
+  }
+
+  return null;
+}
+
+function collectCookies(res) {
+  const cookies = res.headers.getSetCookie?.() ?? [];
+  return cookies.map((cookie) => cookie.split(';')[0]).join('; ');
+}
+
 async function searchDuckDuckGo(query, pageOffset = 0) {
   try {
     // Step 1: Get the vqd token from DuckDuckGo
@@ -5,13 +28,13 @@ async function searchDuckDuckGo(query, pageOffset = 0) {
       `https://duckduckgo.com/?q=${encodeURIComponent(query)}`,
       {
         headers: {
-          'User-Agent':
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'User-Agent': USER_AGENT,
         },
       },
     );
     const tokenText = await tokenRes.text();
-    const vqd = tokenText.match(/vqd=["']?([^"'&]+)/)?.[1];
+    const vqd = extractVqd(tokenText);
+    const cookie = collectCookies(tokenRes);
 
     if (!vqd) {
       console.error('Failed to get DuckDuckGo vqd token');
@@ -23,14 +46,25 @@ async function searchDuckDuckGo(query, pageOffset = 0) {
 
     const imageRes = await fetch(imageUrl, {
       headers: {
-        'User-Agent':
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'User-Agent': USER_AGENT,
         Accept: 'application/json',
         Referer: 'https://duckduckgo.com/',
+        ...(cookie ? { Cookie: cookie } : {}),
       },
     });
 
-    const data = await imageRes.json();
+    const raw = await imageRes.text();
+
+    if (!imageRes.ok || !raw.trimStart().startsWith('{')) {
+      console.error(
+        'DuckDuckGo non-JSON response:',
+        imageRes.status,
+        raw.slice(0, 200),
+      );
+      return [];
+    }
+
+    const data = JSON.parse(raw);
     return data.results || [];
   } catch (error) {
     console.error('DuckDuckGo search error:', error);
