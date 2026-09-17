@@ -11,9 +11,9 @@ import {
   MAX_IMAGES_PER_PAGE,
   MIN_QUERY_LENGTH,
   INLINE_QUERY_DEBOUNCE_MS,
-  SEARCH_CACHE_TTL_SECONDS,
-  SEARCH_EMPTY_CACHE_TTL_SECONDS,
-  SEARCH_FAILURE_CACHE_TTL_SECONDS,
+  ANSWER_CACHE_TIME,
+  ANSWER_EMPTY_CACHE_TIME,
+  ANSWER_FAILURE_CACHE_TIME,
 } from './config.js';
 
 const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}`;
@@ -59,7 +59,7 @@ async function handleInlineQuery(inlineQuery) {
   }
 
   // Search images
-  const { source, results: images, cached, failed } = await searchImages(
+  const { source, results: images, failed } = await searchImages(
     queryPrepared,
     pageOffset,
   );
@@ -71,9 +71,7 @@ async function handleInlineQuery(inlineQuery) {
     return telegram('answerInlineQuery', {
       inline_query_id: id,
       results: [],
-      cache_time: failed
-        ? SEARCH_FAILURE_CACHE_TTL_SECONDS
-        : SEARCH_EMPTY_CACHE_TTL_SECONDS,
+      cache_time: failed ? ANSWER_FAILURE_CACHE_TIME : ANSWER_EMPTY_CACHE_TIME,
       switch_pm_text: failed
         ? isUkrainian
           ? '⚠️ Пошук не вдався. Спробуйте ще раз.'
@@ -109,7 +107,7 @@ async function handleInlineQuery(inlineQuery) {
   await telegram('answerInlineQuery', {
     inline_query_id: id,
     results: pageResults,
-    cache_time: SEARCH_CACHE_TTL_SECONDS,
+    cache_time: ANSWER_CACHE_TIME,
     is_personal: false,
     next_offset: nextOffset,
   });
@@ -120,7 +118,7 @@ async function handleInlineQuery(inlineQuery) {
   const userHandle = from?.username ? `@${from.username}` : 'no username';
 
   console.log(
-    `Search: "${query}" by ${userName} (${userHandle}) → ${loadedResultsLength}/${MAX_IMAGES} results loaded (${source}${cached ? ', cached' : ''}${failed ? ', failed' : ''})`,
+    `Search: "${query}" by ${userName} (${userHandle}) → ${loadedResultsLength}/${MAX_IMAGES} results loaded (${source}${failed ? ', failed' : ''})`,
   );
 }
 
